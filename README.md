@@ -19,6 +19,7 @@ append-only audit trail.
 - [Demo credentials](#demo-credentials)
 - [Demo scenarios](#demo-scenarios)
 - [Architecture decisions](#architecture-decisions)
+- [Assumptions and trade-offs](#assumptions-and-trade-offs)
 - [Security](#security)
 - [Known limitations](#known-limitations)
 
@@ -417,6 +418,36 @@ real key, you'll see a genuine AI classification instead of the "provider unavai
   `refund_policy_rules`, seeded from `.env` defaults. `RefundPolicyService` reads them through a
   cache with a database fallback, so the app is correct even with a cold or evicted cache, and the
   policy could be made staff-editable later without touching the policy engine itself.
+
+See [POLICY.md](POLICY.md) for the refund policy itself, written in plain English rather than code.
+
+## Assumptions and trade-offs
+
+- **Customers are assumed honest about identity but not about facts.** Email + order number is
+  treated as sufficient proof of ownership (no password/account), but the *content* of a refund
+  reason is never trusted: it goes through the policy engine, the AI's suspicious/conflict
+  flags, and the prompt-injection guard rather than being taken at face value.
+- **The seeded refund policy defaults (30-day window, $500 threshold) are assumptions, not
+  requirements from a real business.** They exist to make the demo scenarios in this README
+  reproducible; a real deployment would set `REFUND_*` env vars to the business's actual policy
+  before the first seed.
+- **A blank `AI_API_KEY` is treated as a valid, if degraded, state**, not a misconfiguration to
+  fail hard on. Every AI call fails authentication and the request escalates for manual review,
+  the same as any other provider outage. This was a deliberate choice so the app is demoable and
+  testable without requiring a real key, at the cost of every fresh clone silently running in
+  "AI down" mode until a key is added.
+- **No real payment/refund execution.** This system decides and records the outcome of a refund
+  request; it does not call a payment gateway to actually move money. That integration point
+  (`RefundDecisionService` -> a payments provider) was left out as out-of-scope for the
+  assessment.
+- **Single AI provider call per request, no multi-step agent.** The AI does one structured
+  classification call per refund request rather than a multi-turn agent/tool-calling loop. Given
+  the policy engine (not the AI) makes the actual hard decisions, a heavier orchestration
+  (LangChain/CrewAI-style) would have added complexity without adding correctness.
+- **Demo data trade-off.** `DemoRefundDataSeeder` hardcodes pre-decided outcomes for most seeded
+  customers (see [Demo scenarios](#demo-scenarios)) so every required scenario is visible on the
+  dashboard immediately, without needing a live AI call for each one. One customer is left
+  pending on purpose so a reviewer can trigger one real, live AI decision.
 
 ## Security
 

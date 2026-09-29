@@ -35,6 +35,7 @@ yarn-error.log
 /auth.json
 *.md
 !README.md
+!POLICY.md
 /.fleet
 /.idea
 /.nova
