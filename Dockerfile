@@ -6,23 +6,19 @@
 ## bundle). Nothing from this stage ships in the final image except the
 ## installed vendor/ and the compiled public/build assets.
 ##
-FROM php:8.4-fpm-alpine AS builder
+FROM serversideup/php:8.4-fpm-alpine AS builder
 
-RUN apk add --no-cache \
-        nodejs \
-        npm \
-        postgresql-dev \
-        sqlite-dev \
-        autoconf \
-        g++ \
-        make \
-        linux-headers \
-    && docker-php-ext-install pdo_pgsql pdo_sqlite bcmath \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del autoconf g++ make linux-headers
+USER root
+
+RUN apk add --no-cache libstdc++ libgcc
+
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/bin/
+RUN install-php-extensions bcmath
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY --from=node:22-alpine /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:22-alpine /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 
 WORKDIR /app
 
@@ -50,26 +46,17 @@ RUN touch /tmp/build.sqlite \
 ##
 ## Stage 2: runtime. A lean PHP-FPM image with only the compiled application.
 ##
-FROM php:8.4-fpm-alpine AS runtime
+FROM serversideup/php:8.4-fpm-alpine AS runtime
 
-RUN apk add --no-cache \
-        postgresql-dev \
-        autoconf \
-        g++ \
-        make \
-        linux-headers \
-    && docker-php-ext-install pdo_pgsql bcmath pcntl \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && apk del autoconf g++ make linux-headers \
-    && docker-php-ext-enable opcache
+USER root
 
-RUN { \
-        echo 'opcache.enable=1'; \
-        echo 'opcache.validate_timestamps=0'; \
-        echo 'opcache.max_accelerated_files=20000'; \
-        echo 'opcache.memory_consumption=128'; \
-    } > /usr/local/etc/php/conf.d/opcache-recommended.ini
+COPY --from=mlocati/php-extension-installer:latest /usr/bin/install-php-extensions /usr/bin/
+RUN install-php-extensions bcmath
+
+ENV PHP_OPCACHE_ENABLE=1 \
+    PHP_OPCACHE_VALIDATE_TIMESTAMPS=0 \
+    PHP_OPCACHE_MAX_ACCELERATED_FILES=20000 \
+    PHP_OPCACHE_MEMORY_CONSUMPTION=128
 
 WORKDIR /var/www/html
 
@@ -77,12 +64,11 @@ COPY --from=builder /app/vendor ./vendor
 COPY . .
 COPY --from=builder /app/public/build ./public/build
 
-RUN addgroup -g 1000 www && adduser -G www -u 1000 -D www \
-    && chown -R www:www /var/www/html \
+RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache \
     && chmod +x docker/entrypoint.sh
 
-USER www
+USER www-data
 
 EXPOSE 9000
 

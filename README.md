@@ -236,6 +236,9 @@ Edit `.env` and fill in the values that are intentionally left blank:
 - `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`: any values, they just need to match on both sides
   (docker-compose.yml passes the same variables to the `postgres` container).
 - `AI_API_KEY`: your OpenRouter (or OpenAI/Anthropic) API key.
+- `APP_URL`: set this to wherever the app is actually reachable (e.g. `http://localhost:8000`
+  locally, or your real domain in production). Laravel uses it to generate absolute URLs
+  (signed links, emails), so leaving it as the wrong host will produce broken links.
 
 ```bash
 docker compose up --build

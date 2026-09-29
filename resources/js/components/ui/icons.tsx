@@ -22,7 +22,7 @@ import HugeGitBranchIcon from '@hugeicons/core-free-icons/GitBranchIcon';
 import HugeGridViewIcon from '@hugeicons/core-free-icons/GridViewIcon';
 import HugeInboxIcon from '@hugeicons/core-free-icons/InboxIcon';
 import HugeLoadingIcon from '@hugeicons/core-free-icons/Loading03Icon';
-import HugeLogoutIcon from '@hugeicons/core-free-icons/LogoutIcon';
+import HugeLogoutIcon from '@hugeicons/core-free-icons/LogOutIcon';
 import HugeMailIcon from '@hugeicons/core-free-icons/Mail01Icon';
 import HugeMenuIcon from '@hugeicons/core-free-icons/Menu01Icon';
 import HugeMoneyIcon from '@hugeicons/core-free-icons/Money01Icon';
